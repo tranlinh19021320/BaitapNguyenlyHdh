@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <unistd.h>
 
 #define  N 5                    // number of philosophers
 #define  THINKING 0             // philosopher is thinking
