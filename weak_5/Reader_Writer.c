@@ -38,8 +38,8 @@ int main()
   sem_init(&writeblock,0,1);
   for(i=0;i<=5;i++)
   {
-    pthread_create(&wtid[i],NULL,writer,(void *)(i+1));
-    pthread_create(&rtid[i],NULL,reader,(void *)(i+1));
+    pthread_create(&wtid[i],NULL,writer,NULL);
+    pthread_create(&rtid[i],NULL,reader,NULL);
   }
   for(i=0;i<=5;i++)
   {
