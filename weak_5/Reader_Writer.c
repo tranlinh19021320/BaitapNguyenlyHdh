@@ -2,6 +2,7 @@
 #include<pthread.h>
 #include<semaphore.h>
 #include<unistd.h>
+#include<stdint.h>
 
 sem_t mutex,writeblock;
 int data = 0,rcount = 0;
@@ -13,7 +14,7 @@ void *reader(void *arg)
   if(rcount==1)
    sem_wait(&writeblock);
   sem_post(&mutex);
-  printf("Data read by the reader%d is %d\n",(*((int *)arg)) ,data);
+  printf("Data read by the reader%d is %d\n",(intptr_t)arg)) ,data);
   sleep(1);
   sem_wait(&mutex);
   rcount = rcount - 1;
@@ -26,7 +27,7 @@ void *writer(void *arg)
 {
   sem_wait(&writeblock);
   data++;
-  printf("Data writen by the writer%d is %d\n",(*((int *)arg)) ,data);
+  printf("Data writen by the writer%d is %d\n",(intptr_t)arg)) ,data);
   sleep(1);
   sem_post(&writeblock);
 }
@@ -39,8 +40,8 @@ int main()
   sem_init(&writeblock,0,1);
   for(i=0;i<=5;i++)
   {
-    pthread_create(&wtid[i],NULL,writer,NULL);
-    pthread_create(&rtid[i],NULL,reader,NULL);
+    pthread_create(&wtid[i],NULL,writer,(void *) (intptr_t)i);
+    pthread_create(&rtid[i],NULL,reader,(void *) (intptr_t)i);
   }
   for(i=0;i<=5;i++)
   {

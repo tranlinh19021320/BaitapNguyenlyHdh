@@ -1,86 +1,99 @@
-#include <pthread.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <time.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <pthread.h>
+#include <semaphore.h>
 
-#define NUMBER_OF_PHILOSOPHERS 5
+#define  N 5                    // number of philosophers
+#define  THINKING 0             // philosopher is thinking
+#define  HUNGRY 1               // philosopher is trying to get forks
+#define  EATING 2               // philosopher is eating
 
-void *philosopher(void *);
-void think(int);
-void pickUp(int);
-void eat(int);
-void putDown(int);
+#define LEFT (i+N-1)%N    // number of i's left neighbor
+#define RIGHT (i+1)%N     // number of i's right neighbor
 
-pthread_mutex_t chopsticks[NUMBER_OF_PHILOSOPHERS];
-pthread_t philosophers[NUMBER_OF_PHILOSOPHERS];
-pthread_attr_t attributes[NUMBER_OF_PHILOSOPHERS];
+int state[N];             // array to keep track of everyone's state
+pthread_mutex_t mutex;        // mutual exclusion for critical regions
+int s[N]={0, 0, 0, 0, 0}; 
+                          // one semaphore per philosopher
+sem_t mo;            // for synchronized cout
+
+int myrand(int min, int max) {
+  return min+rand() % (max+1-min);
+}
+
+void test(int i) {        // i: philosopher number, from 0 to N-1
+  if (state[i] == HUNGRY 
+   && state[LEFT] != EATING && state[RIGHT] != EATING) {
+    state[i] = EATING;
+    s[i]=s[i]+1;
+  }
+}
+
+void think(int i) {
+  int duration = myrand(400, 800);
+  {
+    sem_wait(&mo);
+    printf("%d thinks %d ms\n",i,duration);
+    sem_post(&mo);
+  }
+  usleep(duration);
+}
+
+void take_forks(int i) {  // i: philosopher number, from 0 to N-1
+  pthread_mutex_lock(&mutex);         // enter critical region
+  state[i] = HUNGRY;      // record fact that philosopher i is hungry
+  {
+    sem_wait(&mo);
+    printf("\t\t%d is hungry\n",i);
+    sem_post(&mo);
+  }
+  test(i);                // try to acquire 2 forks
+  pthread_mutex_unlock(&mutex);         // exit critical region
+  s[i]=s[i]-1;     // block if forks were not acquired
+} 
+
+void eat(int i) {
+  int duration = myrand(400, 800);
+  {
+    sem_wait(&mo);
+    printf("\t\t\t\t %d eats %d ms\n",i,duration);
+    sem_post(&mo);
+  }
+  usleep(duration);
+}
+
+void put_forks(int i) {   // i: philosopher number, from 0 to N-1
+  pthread_mutex_lock(&mutex);         // enter critical region
+  state[i] = THINKING;    // philosopher has finished eating
+  test(LEFT);             // see if left neighbor can now eat
+  test(RIGHT);            // see if right neighbor can now eat
+  pthread_mutex_unlock(&mutex);      // exit critical region
+}
+
+void *philosopher(void *k) {
+  int *a=k;
+  int i=*a; // i: philosopher number, from 0 to N-1
+  while (true) {          // repeat forever
+    think(i);             // philosopher is thinking
+    take_forks(i);        // acquire two forks or block
+    eat(i);               // yum-yum, spaghetti
+    put_forks(i);         // put both forks back on table
+  }
+}
 
 int main() {
-	int i;
-	srand(time(NULL));
-	for (i = 0; i < NUMBER_OF_PHILOSOPHERS; ++i) {
-		pthread_mutex_init(&chopsticks[i], NULL);
-	}
-
-	for (i = 0; i < NUMBER_OF_PHILOSOPHERS; ++i) {
-		pthread_attr_init(&attributes[i]);
-	}
-	
-	for (i = 0; i < NUMBER_OF_PHILOSOPHERS; ++i) {
-		pthread_create(&philosophers[i], &attributes[i], philosopher, (void *)(i));
-	}
-
-	for (i = 0; i < NUMBER_OF_PHILOSOPHERS; ++i) {
-		pthread_join(philosophers[i], NULL);
-	}
-	return 0;
+  pthread_t phi[5];
+  pthread_mutex_init(&mutex,NULL);
+  sem_init(&mo,0,1);
+  int a[5]={1,2,3,4,5};
+  for(int i=0;i<5;i++){
+  	pthread_create(&phi[i],NULL,(void*) philosopher,(void*)&a[i]);
+  }
+  for(int i=0;i<5;i++){
+  	pthread_join(phi[i],NULL);
+  }
+  pthread_mutex_destroy(&mutex);
+  sem_destroy(&mo);
 }
 
-void *philosopher(void *philosopherNumber) {
-	while (1) {
-		think(philosopherNumber);
-		pickUp(philosopherNumber);
-		eat(philosopherNumber);
-		putDown(philosopherNumber);
-	}
-}
-
-void think(int philosopherNumber) {
-	int sleepTime = rand() % 3 + 1;
-	printf("Philosopher %d will think for %d seconds\n", philosopherNumber, sleepTime);
-	sleep(sleepTime);
-}
-
-void pickUp(int philosopherNumber) {
-	int right = (philosopherNumber + 1) % NUMBER_OF_PHILOSOPHERS;
-	int left = (philosopherNumber + NUMBER_OF_PHILOSOPHERS) % NUMBER_OF_PHILOSOPHERS;
-	if (philosopherNumber & 1) {
-		printf("Philosopher %d is waiting to pick up chopstick %d\n", philosopherNumber, right);
-		pthread_mutex_lock(&chopsticks[right]);
-		printf("Philosopher %d picked up chopstick %d\n", philosopherNumber, right);
-		printf("Philosopher %d is waiting to pick up chopstick %d\n", philosopherNumber, left);
-		pthread_mutex_lock(&chopsticks[left]);
-		printf("Philosopher %d picked up chopstick %d\n", philosopherNumber, left);
-	}
-	else {
-		printf("Philosopher %d is waiting to pick up chopstick %d\n", philosopherNumber, left);
-		pthread_mutex_lock(&chopsticks[left]);
-		printf("Philosopher %d picked up chopstick %d\n", philosopherNumber, left);
-		printf("Philosopher %d is waiting to pick up chopstick %d\n", philosopherNumber, right);
-		pthread_mutex_lock(&chopsticks[right]);
-		printf("Philosopher %d picked up chopstick %d\n", philosopherNumber, right);
-	}
-}
-
-void eat(int philosopherNumber) {
-	int eatTime = rand() % 3 + 1;
-	printf("Philosopher %d will eat for %d seconds\n", philosopherNumber, eatTime);
-	sleep(eatTime);
-}
-
-void putDown(int philosopherNumber) {
-	printf("Philosopher %d will will put down her chopsticks\n", philosopherNumber);
-	pthread_mutex_unlock(&chopsticks[(philosopherNumber + 1) % NUMBER_OF_PHILOSOPHERS]);
-	pthread_mutex_unlock(&chopsticks[(philosopherNumber + NUMBER_OF_PHILOSOPHERS) % NUMBER_OF_PHILOSOPHERS]);
-}
