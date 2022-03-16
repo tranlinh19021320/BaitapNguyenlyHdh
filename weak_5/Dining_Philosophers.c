@@ -32,7 +32,7 @@ void test(int i) {        // i: philosopher number, from 0 to N-1
 }
 
 void think(int i) {
-  int duration = myrand(400, 800);
+  int duration = myrand(2000, 4000);
   {
     sem_wait(&mo);
     printf("%d thinks %d ms\n",i,duration);
@@ -55,7 +55,7 @@ void take_forks(int i) {  // i: philosopher number, from 0 to N-1
 } 
 
 void eat(int i) {
-  int duration = myrand(400, 800);
+  int duration = myrand(2000, 3000);
   {
     sem_wait(&mo);
     printf("\t\t\t\t %d eats %d ms\n",i,duration);
