@@ -14,7 +14,7 @@ void *reader(void *arg)
   if(rcount==1)
    sem_wait(&writeblock);
   sem_post(&mutex);
-  printf("Data read by the reader%d is %d\n",(intptr_t)arg)) ,data);
+  printf("Data read by the reader%ld is %d\n",(intptr_t)arg,data);
   sleep(1);
   sem_wait(&mutex);
   rcount = rcount - 1;
@@ -27,7 +27,7 @@ void *writer(void *arg)
 {
   sem_wait(&writeblock);
   data++;
-  printf("Data writen by the writer%d is %d\n",(intptr_t)arg)) ,data);
+  printf("Data writen by the writer%ld is %d\n",(intptr_t)arg,data);
   sleep(1);
   sem_post(&writeblock);
 }
