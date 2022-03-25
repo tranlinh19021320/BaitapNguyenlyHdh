@@ -45,5 +45,6 @@ int main()
   {
     pthread_join(rtid[i],NULL);
   }
+  pthread_join(wtid[0],NULL);
   return 0;
 }
