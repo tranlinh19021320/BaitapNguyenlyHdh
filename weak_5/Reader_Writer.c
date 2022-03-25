@@ -33,15 +33,15 @@ void *writer(void *arg)
 int main()
 {
   int i,b; 
-  pthread_t rtid[5],wtid[5];
+  pthread_t rtid[10],wtid[0];
   sem_init(&mutex,0,1);
   sem_init(&writeblock,0,1);
-  for(i=0;i<=5;i++)
+  for(i=0;i<=10;i++)
   {
     pthread_create(&rtid[i],NULL,reader,(void *) (intptr_t)i);
   }
     pthread_create(&wtid[0],NULL,writer,(void *) (intptr_t)0);
-  for(i=0;i<=5;i++)
+  for(i=0;i<=10;i++)
   {
     pthread_join(rtid[i],NULL);
   }
